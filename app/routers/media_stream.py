@@ -10,8 +10,9 @@ from fastapi.websockets import WebSocketDisconnect
 from twilio.twiml.voice_response import VoiceResponse, Connect, Say, Stream
 from dotenv import load_dotenv
 from fastapi.responses import Response
-from app.utils.openai_helpers import handle_search_hotels
+from app.utils.openai_helpers import handle_search_hotels,handle_book_hotel
 from fastapi import APIRouter, WebSocket
+from app.core.database import AsyncSessionLocal
 
 load_dotenv()
 OPENAI_API_KEY=os.getenv('OPENAI_API_KEY')
@@ -60,6 +61,7 @@ async def handle_media_stream(websocket: WebSocket):
 
         async def send_to_twilio():
             nonlocal stream_sid
+            
             try:
                 async for openai_message in openai_ws:
                     response = json.loads(openai_message)
@@ -76,17 +78,27 @@ async def handle_media_stream(websocket: WebSocket):
                             "media": {"payload": audio_payload}
                         }
                         await websocket.send_json(audio_delta)
-                     
+                    
+                    if response['type'] == 'response.create' and 'instructions' in response['response']:
+                        instructions = response['response']['instructions'].lower()
+                        if "bye" in instructions or "goodbye" in instructions:
+                            hangup_event = {
+                        "event": "hangup"
+                    }
+                        await websocket.send_json(hangup_event)
+                        print("Call ended by user saying bye.")
+                        return  # stop the WebSocket loop
+                    
                     if response['type'] == 'response.function_call_arguments.done':
     # Model is requesting a function call
                         function_name = response['name']
                         function_args = json.loads(response['arguments'])
                         print(function_name,function_args)
-    
-                        if function_name == "search_hotels":
-                            await handle_search_hotels(openai_ws, response['call_id'], function_args)
-                        # elif function_name == "book_hotel":
-                        #     await handle_book_hotel(openai_ws, response['call_id'], function_args)
+                        async with AsyncSessionLocal() as session:
+                            if function_name == "search_hotels":
+                                await handle_search_hotels(openai_ws, response['call_id'], function_args)
+                            elif function_name == "book_hotel":
+                                await handle_book_hotel(openai_ws, response['call_id'], function_args, session)
                         
 
             except Exception as e:

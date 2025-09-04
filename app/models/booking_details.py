@@ -12,6 +12,5 @@ class Booking(Base):
     # Link to the hotel
     hotel_id: Mapped[int] = mapped_column(Integer, ForeignKey("hotels.id"), nullable=False)
     hotel: Mapped["Hotel"] = relationship("Hotel", back_populates="bookings")
-
     user_name: Mapped[str] = mapped_column(String(128), nullable=False)  
 
