@@ -159,7 +159,7 @@ async def handle_media_stream(websocket: WebSocket):
     # }
     # await openai_ws.send(json.dumps(initial_response))
     # print("✅ Sent initial response.create")
-    
+                         
 
 
 async def send_session_update(openai_ws):
