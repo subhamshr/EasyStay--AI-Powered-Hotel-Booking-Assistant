@@ -1,1 +1,1 @@
-# docker-fastapi-starter
+An AI-powered hotel booking system that enables users to find and book hotels using natural voice. The system integrates with OpenAI for intelligent responses and Twilio for voice interactions, making hotel search and booking as seamless as talking to a real assistant.
